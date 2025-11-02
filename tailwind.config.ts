@@ -47,6 +47,26 @@ export default {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
+        success: {
+          DEFAULT: "hsl(var(--success))",
+          foreground: "hsl(var(--success-foreground))",
+        },
+        warning: {
+          DEFAULT: "hsl(var(--warning))",
+          foreground: "hsl(var(--warning-foreground))",
+        },
+        pending: {
+          DEFAULT: "hsl(var(--pending))",
+          foreground: "hsl(var(--pending-foreground))",
+        },
+        "in-progress": {
+          DEFAULT: "hsl(var(--in-progress))",
+          foreground: "hsl(var(--in-progress-foreground))",
+        },
+        completed: {
+          DEFAULT: "hsl(var(--completed))",
+          foreground: "hsl(var(--completed-foreground))",
+        },
         sidebar: {
           DEFAULT: "hsl(var(--sidebar-background))",
           foreground: "hsl(var(--sidebar-foreground))",
