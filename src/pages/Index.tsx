@@ -1,4 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,18 +12,71 @@ import { VideoTaskForm } from "@/components/VideoTaskForm";
 import { CelebrityScheduleForm } from "@/components/CelebrityScheduleForm";
 import { ProductDeliveryForm } from "@/components/ProductDeliveryForm";
 import { SocialMediaCheckForm } from "@/components/SocialMediaCheckForm";
-import { Video, Star, Package, Share2, Plus, Search } from "lucide-react";
+import { Video, Star, Package, Share2, Plus, Search, LogOut } from "lucide-react";
 import { VideoTask, CelebritySchedule, ProductDelivery, SocialMediaCheck, TaskStatus } from "@/types/tasks";
 import { format } from "date-fns";
 import { toast } from "sonner";
+import { User, Session } from "@supabase/supabase-js";
 
 const Index = () => {
+  const navigate = useNavigate();
+  const [user, setUser] = useState<User | null>(null);
+  const [session, setSession] = useState<Session | null>(null);
+  const [loading, setLoading] = useState(true);
   const [videoTasks, setVideoTasks] = useState<VideoTask[]>([]);
   const [celebritySchedules, setCelebritySchedules] = useState<CelebritySchedule[]>([]);
   const [productDeliveries, setProductDeliveries] = useState<ProductDelivery[]>([]);
   const [socialMediaChecks, setSocialMediaChecks] = useState<SocialMediaCheck[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+
+  useEffect(() => {
+    // Set up auth state listener FIRST
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        setSession(session);
+        setUser(session?.user ?? null);
+        setLoading(false);
+      }
+    );
+
+    // THEN check for existing session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      setUser(session?.user ?? null);
+      setLoading(false);
+      
+      if (!session?.user) {
+        setTimeout(() => {
+          navigate("/auth");
+        }, 0);
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, [navigate]);
+
+  const handleLogout = async () => {
+    const { error } = await supabase.auth.signOut();
+    if (error) {
+      toast.error("Error signing out");
+    } else {
+      toast.success("Signed out successfully");
+      navigate("/auth");
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <p className="text-muted-foreground">Loading...</p>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return null;
+  }
 
   // Video Tasks
   const addVideoTask = (task: Omit<VideoTask, "id">) => {
@@ -161,8 +216,16 @@ const Index = () => {
     <div className="min-h-screen bg-background p-4 md:p-8">
       <div className="max-w-7xl mx-auto space-y-8">
         <header className="space-y-4">
-          <h1 className="text-4xl font-bold text-primary">Task Management Dashboard</h1>
-          <p className="text-muted-foreground">Manage your digital marketing tasks efficiently</p>
+          <div className="flex justify-between items-start">
+            <div>
+              <h1 className="text-4xl font-bold text-primary">Task Management Dashboard</h1>
+              <p className="text-muted-foreground">Manage your digital marketing tasks efficiently</p>
+            </div>
+            <Button variant="outline" onClick={handleLogout}>
+              <LogOut className="mr-2 h-4 w-4" />
+              Logout
+            </Button>
+          </div>
         </header>
 
         {/* Overview Cards */}
