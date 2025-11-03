@@ -12,7 +12,7 @@ import { VideoTaskForm } from "@/components/VideoTaskForm";
 import { CelebrityScheduleForm } from "@/components/CelebrityScheduleForm";
 import { ProductDeliveryForm } from "@/components/ProductDeliveryForm";
 import { SocialMediaCheckForm } from "@/components/SocialMediaCheckForm";
-import { Video, Star, Package, Share2, Plus, Search, LogOut } from "lucide-react";
+import { Video, Star, Package, Share2, Plus, Search, LogOut, Users } from "lucide-react";
 import { VideoTask, CelebritySchedule, ProductDelivery, SocialMediaCheck, TaskStatus } from "@/types/tasks";
 import { format } from "date-fns";
 import { toast } from "sonner";
@@ -566,10 +566,16 @@ const Index = () => {
               <h1 className="text-4xl font-bold text-primary">Task Management Dashboard</h1>
               <p className="text-muted-foreground">Manage your digital marketing tasks efficiently</p>
             </div>
-            <Button variant="outline" onClick={handleLogout}>
-              <LogOut className="mr-2 h-4 w-4" />
-              Logout
-            </Button>
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={() => navigate("/team-tracking")}>
+                <Users className="mr-2 h-4 w-4" />
+                Team Tracking
+              </Button>
+              <Button variant="outline" onClick={handleLogout}>
+                <LogOut className="mr-2 h-4 w-4" />
+                Logout
+              </Button>
+            </div>
           </div>
         </header>
 

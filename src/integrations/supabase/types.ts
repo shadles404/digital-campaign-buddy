@@ -143,6 +143,39 @@ export type Database = {
         }
         Relationships: []
       }
+      team_members: {
+        Row: {
+          created_at: string
+          description: string
+          id: string
+          phone: string
+          salary: number
+          target_videos: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          description: string
+          id?: string
+          phone: string
+          salary?: number
+          target_videos?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          description?: string
+          id?: string
+          phone?: string
+          salary?: number
+          target_videos?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       video_tasks: {
         Row: {
           created_at: string
