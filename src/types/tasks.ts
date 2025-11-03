@@ -13,7 +13,7 @@ export interface CelebritySchedule {
   name: string;
   videoCount: number;
   scheduledDate: Date;
-  status: "scheduled" | "completed";
+  status: "scheduled" | "in-progress" | "completed";
 }
 
 export interface ProductDelivery {
@@ -30,6 +30,6 @@ export interface SocialMediaCheck {
   platform: string;
   postDate: Date;
   designerName: string;
-  status: "posted" | "not-posted";
+  status: "posted" | "not-posted" | "pending";
   notes: string;
 }

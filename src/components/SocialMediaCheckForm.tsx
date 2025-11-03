@@ -20,7 +20,7 @@ export const SocialMediaCheckForm = ({ onSubmit, initialData }: SocialMediaCheck
   const [platform, setPlatform] = useState(initialData?.platform || "");
   const [postDate, setPostDate] = useState<Date | undefined>(initialData?.postDate);
   const [designerName, setDesignerName] = useState(initialData?.designerName || "");
-  const [status, setStatus] = useState<"posted" | "not-posted">(initialData?.status || "not-posted");
+  const [status, setStatus] = useState<"posted" | "not-posted" | "pending">(initialData?.status || "not-posted");
   const [notes, setNotes] = useState(initialData?.notes || "");
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -102,13 +102,14 @@ export const SocialMediaCheckForm = ({ onSubmit, initialData }: SocialMediaCheck
 
       <div>
         <Label>Status</Label>
-        <Select value={status} onValueChange={(value) => setStatus(value as "posted" | "not-posted")}>
+        <Select value={status} onValueChange={(value) => setStatus(value as "posted" | "not-posted" | "pending")}>
           <SelectTrigger>
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="posted">Posted</SelectItem>
             <SelectItem value="not-posted">Not Posted</SelectItem>
+            <SelectItem value="pending">Pending</SelectItem>
           </SelectContent>
         </Select>
       </div>

@@ -14,6 +14,75 @@ export type Database = {
   }
   public: {
     Tables: {
+      celebrity_schedules: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          scheduled_date: string
+          status: string
+          updated_at: string
+          user_id: string
+          video_count: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          scheduled_date: string
+          status?: string
+          updated_at?: string
+          user_id: string
+          video_count: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          scheduled_date?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+          video_count?: number
+        }
+        Relationships: []
+      }
+      product_deliveries: {
+        Row: {
+          celebrity_name: string
+          created_at: string
+          delivered: boolean
+          delivery_date: string
+          id: string
+          notes: string | null
+          product_name: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          celebrity_name: string
+          created_at?: string
+          delivered?: boolean
+          delivery_date: string
+          id?: string
+          notes?: string | null
+          product_name: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          celebrity_name?: string
+          created_at?: string
+          delivered?: boolean
+          delivery_date?: string
+          id?: string
+          notes?: string | null
+          product_name?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string
@@ -35,6 +104,75 @@ export type Database = {
           full_name?: string | null
           id?: string
           updated_at?: string
+        }
+        Relationships: []
+      }
+      social_media_checks: {
+        Row: {
+          created_at: string
+          designer_name: string
+          id: string
+          notes: string | null
+          platform: string
+          post_date: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          designer_name: string
+          id?: string
+          notes?: string | null
+          platform: string
+          post_date: string
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          designer_name?: string
+          id?: string
+          notes?: string | null
+          platform?: string
+          post_date?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      video_tasks: {
+        Row: {
+          created_at: string
+          description: string | null
+          due_date: string
+          id: string
+          status: string
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          due_date: string
+          id?: string
+          status?: string
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          due_date?: string
+          id?: string
+          status?: string
+          title?: string
+          updated_at?: string
+          user_id?: string
         }
         Relationships: []
       }

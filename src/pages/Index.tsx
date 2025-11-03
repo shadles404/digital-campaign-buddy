@@ -29,6 +29,7 @@ const Index = () => {
   const [socialMediaChecks, setSocialMediaChecks] = useState<SocialMediaCheck[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [dataLoading, setDataLoading] = useState(false);
 
   useEffect(() => {
     // Set up auth state listener FIRST
@@ -56,6 +57,84 @@ const Index = () => {
     return () => subscription.unsubscribe();
   }, [navigate]);
 
+  // Fetch all data when user is available
+  useEffect(() => {
+    if (!user) return;
+
+    const fetchAllData = async () => {
+      setDataLoading(true);
+      try {
+        // Fetch video tasks
+        const { data: videoData, error: videoError } = await supabase
+          .from('video_tasks')
+          .select('*')
+          .order('created_at', { ascending: false });
+        
+        if (videoError) throw videoError;
+        setVideoTasks(videoData.map(task => ({
+          id: task.id,
+          title: task.title,
+          description: task.description || '',
+          dueDate: new Date(task.due_date),
+          status: task.status as TaskStatus
+        })));
+
+        // Fetch celebrity schedules
+        const { data: celebrityData, error: celebrityError } = await supabase
+          .from('celebrity_schedules')
+          .select('*')
+          .order('created_at', { ascending: false });
+        
+        if (celebrityError) throw celebrityError;
+        setCelebritySchedules(celebrityData.map(schedule => ({
+          id: schedule.id,
+          name: schedule.name,
+          videoCount: schedule.video_count,
+          scheduledDate: new Date(schedule.scheduled_date),
+          status: schedule.status as 'scheduled' | 'in-progress' | 'completed'
+        })));
+
+        // Fetch product deliveries
+        const { data: deliveryData, error: deliveryError } = await supabase
+          .from('product_deliveries')
+          .select('*')
+          .order('created_at', { ascending: false });
+        
+        if (deliveryError) throw deliveryError;
+        setProductDeliveries(deliveryData.map(delivery => ({
+          id: delivery.id,
+          productName: delivery.product_name,
+          celebrityName: delivery.celebrity_name,
+          deliveryDate: new Date(delivery.delivery_date),
+          delivered: delivery.delivered,
+          notes: delivery.notes || ''
+        })));
+
+        // Fetch social media checks
+        const { data: socialData, error: socialError } = await supabase
+          .from('social_media_checks')
+          .select('*')
+          .order('created_at', { ascending: false });
+        
+        if (socialError) throw socialError;
+        setSocialMediaChecks(socialData.map(check => ({
+          id: check.id,
+          platform: check.platform,
+          postDate: new Date(check.post_date),
+          designerName: check.designer_name,
+          status: check.status as 'posted' | 'not-posted' | 'pending',
+          notes: check.notes || ''
+        })));
+      } catch (error: any) {
+        toast.error("Error loading data: " + error.message);
+      } finally {
+        setDataLoading(false);
+      }
+    };
+
+    fetchAllData();
+  }, [user]);
+
   const handleLogout = async () => {
     const { error } = await supabase.auth.signOut();
     if (error) {
@@ -66,7 +145,7 @@ const Index = () => {
     }
   };
 
-  if (loading) {
+  if (loading || dataLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <p className="text-muted-foreground">Loading...</p>
@@ -79,109 +158,375 @@ const Index = () => {
   }
 
   // Video Tasks
-  const addVideoTask = (task: Omit<VideoTask, "id">) => {
-    const newTask = { ...task, id: Date.now().toString() };
-    setVideoTasks([...videoTasks, newTask]);
-    toast.success("Video task added successfully");
+  const addVideoTask = async (task: Omit<VideoTask, "id">) => {
+    if (!user) return;
+    try {
+      const { data, error } = await supabase
+        .from('video_tasks')
+        .insert({
+          user_id: user.id,
+          title: task.title,
+          description: task.description,
+          due_date: task.dueDate.toISOString(),
+          status: task.status
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+      
+      setVideoTasks([...videoTasks, {
+        id: data.id,
+        title: data.title,
+        description: data.description || '',
+        dueDate: new Date(data.due_date),
+        status: data.status as TaskStatus
+      }]);
+      toast.success("Video task added successfully");
+    } catch (error: any) {
+      toast.error("Error adding task: " + error.message);
+    }
   };
 
-  const updateVideoTask = (task: VideoTask) => {
-    setVideoTasks(videoTasks.map((t) => (t.id === task.id ? task : t)));
-    toast.success("Video task updated");
+  const updateVideoTask = async (task: VideoTask) => {
+    try {
+      const { error } = await supabase
+        .from('video_tasks')
+        .update({
+          title: task.title,
+          description: task.description,
+          due_date: task.dueDate.toISOString(),
+          status: task.status
+        })
+        .eq('id', task.id);
+
+      if (error) throw error;
+      
+      setVideoTasks(videoTasks.map((t) => (t.id === task.id ? task : t)));
+      toast.success("Video task updated");
+    } catch (error: any) {
+      toast.error("Error updating task: " + error.message);
+    }
   };
 
-  const deleteVideoTask = (id: string) => {
-    setVideoTasks(videoTasks.filter((t) => t.id !== id));
-    toast.success("Video task deleted");
+  const deleteVideoTask = async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from('video_tasks')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+      
+      setVideoTasks(videoTasks.filter((t) => t.id !== id));
+      toast.success("Video task deleted");
+    } catch (error: any) {
+      toast.error("Error deleting task: " + error.message);
+    }
   };
 
-  const toggleVideoTaskComplete = (id: string) => {
-    setVideoTasks(
-      videoTasks.map((t) =>
-        t.id === id
-          ? { ...t, status: t.status === "completed" ? "pending" : "completed" }
-          : t
-      )
-    );
+  const toggleVideoTaskComplete = async (id: string) => {
+    const task = videoTasks.find(t => t.id === id);
+    if (!task) return;
+    
+    const newStatus = task.status === "completed" ? "pending" : "completed";
+    
+    try {
+      const { error } = await supabase
+        .from('video_tasks')
+        .update({ status: newStatus })
+        .eq('id', id);
+
+      if (error) throw error;
+      
+      setVideoTasks(
+        videoTasks.map((t) =>
+          t.id === id ? { ...t, status: newStatus as TaskStatus } : t
+        )
+      );
+    } catch (error: any) {
+      toast.error("Error updating task: " + error.message);
+    }
   };
 
   // Celebrity Schedules
-  const addCelebritySchedule = (schedule: Omit<CelebritySchedule, "id">) => {
-    const newSchedule = { ...schedule, id: Date.now().toString() };
-    setCelebritySchedules([...celebritySchedules, newSchedule]);
-    toast.success("Celebrity schedule added");
+  const addCelebritySchedule = async (schedule: Omit<CelebritySchedule, "id">) => {
+    if (!user) return;
+    try {
+      const { data, error } = await supabase
+        .from('celebrity_schedules')
+        .insert({
+          user_id: user.id,
+          name: schedule.name,
+          video_count: schedule.videoCount,
+          scheduled_date: schedule.scheduledDate.toISOString(),
+          status: schedule.status
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+      
+      setCelebritySchedules([...celebritySchedules, {
+        id: data.id,
+        name: data.name,
+        videoCount: data.video_count,
+        scheduledDate: new Date(data.scheduled_date),
+        status: data.status as 'scheduled' | 'in-progress' | 'completed'
+      }]);
+      toast.success("Celebrity schedule added");
+    } catch (error: any) {
+      toast.error("Error adding schedule: " + error.message);
+    }
   };
 
-  const updateCelebritySchedule = (schedule: CelebritySchedule) => {
-    setCelebritySchedules(celebritySchedules.map((s) => (s.id === schedule.id ? schedule : s)));
-    toast.success("Celebrity schedule updated");
+  const updateCelebritySchedule = async (schedule: CelebritySchedule) => {
+    try {
+      const { error } = await supabase
+        .from('celebrity_schedules')
+        .update({
+          name: schedule.name,
+          video_count: schedule.videoCount,
+          scheduled_date: schedule.scheduledDate.toISOString(),
+          status: schedule.status
+        })
+        .eq('id', schedule.id);
+
+      if (error) throw error;
+      
+      setCelebritySchedules(celebritySchedules.map((s) => (s.id === schedule.id ? schedule : s)));
+      toast.success("Celebrity schedule updated");
+    } catch (error: any) {
+      toast.error("Error updating schedule: " + error.message);
+    }
   };
 
-  const deleteCelebritySchedule = (id: string) => {
-    setCelebritySchedules(celebritySchedules.filter((s) => s.id !== id));
-    toast.success("Celebrity schedule deleted");
+  const deleteCelebritySchedule = async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from('celebrity_schedules')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+      
+      setCelebritySchedules(celebritySchedules.filter((s) => s.id !== id));
+      toast.success("Celebrity schedule deleted");
+    } catch (error: any) {
+      toast.error("Error deleting schedule: " + error.message);
+    }
   };
 
-  const toggleCelebrityComplete = (id: string) => {
-    setCelebritySchedules(
-      celebritySchedules.map((s) =>
-        s.id === id
-          ? { ...s, status: s.status === "completed" ? "scheduled" : "completed" }
-          : s
-      )
-    );
+  const toggleCelebrityComplete = async (id: string) => {
+    const schedule = celebritySchedules.find(s => s.id === id);
+    if (!schedule) return;
+    
+    const newStatus = schedule.status === "completed" ? "scheduled" : "completed";
+    
+    try {
+      const { error } = await supabase
+        .from('celebrity_schedules')
+        .update({ status: newStatus })
+        .eq('id', id);
+
+      if (error) throw error;
+      
+      setCelebritySchedules(
+        celebritySchedules.map((s) =>
+          s.id === id ? { ...s, status: newStatus as 'scheduled' | 'in-progress' | 'completed' } : s
+        )
+      );
+    } catch (error: any) {
+      toast.error("Error updating schedule: " + error.message);
+    }
   };
 
   // Product Deliveries
-  const addProductDelivery = (delivery: Omit<ProductDelivery, "id">) => {
-    const newDelivery = { ...delivery, id: Date.now().toString() };
-    setProductDeliveries([...productDeliveries, newDelivery]);
-    toast.success("Product delivery added");
+  const addProductDelivery = async (delivery: Omit<ProductDelivery, "id">) => {
+    if (!user) return;
+    try {
+      const { data, error } = await supabase
+        .from('product_deliveries')
+        .insert({
+          user_id: user.id,
+          product_name: delivery.productName,
+          celebrity_name: delivery.celebrityName,
+          delivery_date: delivery.deliveryDate.toISOString(),
+          delivered: delivery.delivered,
+          notes: delivery.notes
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+      
+      setProductDeliveries([...productDeliveries, {
+        id: data.id,
+        productName: data.product_name,
+        celebrityName: data.celebrity_name,
+        deliveryDate: new Date(data.delivery_date),
+        delivered: data.delivered,
+        notes: data.notes || ''
+      }]);
+      toast.success("Product delivery added");
+    } catch (error: any) {
+      toast.error("Error adding delivery: " + error.message);
+    }
   };
 
-  const updateProductDelivery = (delivery: ProductDelivery) => {
-    setProductDeliveries(productDeliveries.map((d) => (d.id === delivery.id ? delivery : d)));
-    toast.success("Product delivery updated");
+  const updateProductDelivery = async (delivery: ProductDelivery) => {
+    try {
+      const { error } = await supabase
+        .from('product_deliveries')
+        .update({
+          product_name: delivery.productName,
+          celebrity_name: delivery.celebrityName,
+          delivery_date: delivery.deliveryDate.toISOString(),
+          delivered: delivery.delivered,
+          notes: delivery.notes
+        })
+        .eq('id', delivery.id);
+
+      if (error) throw error;
+      
+      setProductDeliveries(productDeliveries.map((d) => (d.id === delivery.id ? delivery : d)));
+      toast.success("Product delivery updated");
+    } catch (error: any) {
+      toast.error("Error updating delivery: " + error.message);
+    }
   };
 
-  const deleteProductDelivery = (id: string) => {
-    setProductDeliveries(productDeliveries.filter((d) => d.id !== id));
-    toast.success("Product delivery deleted");
+  const deleteProductDelivery = async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from('product_deliveries')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+      
+      setProductDeliveries(productDeliveries.filter((d) => d.id !== id));
+      toast.success("Product delivery deleted");
+    } catch (error: any) {
+      toast.error("Error deleting delivery: " + error.message);
+    }
   };
 
-  const toggleDeliveryComplete = (id: string) => {
-    setProductDeliveries(
-      productDeliveries.map((d) =>
-        d.id === id ? { ...d, delivered: !d.delivered } : d
-      )
-    );
+  const toggleDeliveryComplete = async (id: string) => {
+    const delivery = productDeliveries.find(d => d.id === id);
+    if (!delivery) return;
+    
+    try {
+      const { error } = await supabase
+        .from('product_deliveries')
+        .update({ delivered: !delivery.delivered })
+        .eq('id', id);
+
+      if (error) throw error;
+      
+      setProductDeliveries(
+        productDeliveries.map((d) =>
+          d.id === id ? { ...d, delivered: !d.delivered } : d
+        )
+      );
+    } catch (error: any) {
+      toast.error("Error updating delivery: " + error.message);
+    }
   };
 
   // Social Media Checks
-  const addSocialMediaCheck = (check: Omit<SocialMediaCheck, "id">) => {
-    const newCheck = { ...check, id: Date.now().toString() };
-    setSocialMediaChecks([...socialMediaChecks, newCheck]);
-    toast.success("Social media check added");
+  const addSocialMediaCheck = async (check: Omit<SocialMediaCheck, "id">) => {
+    if (!user) return;
+    try {
+      const { data, error } = await supabase
+        .from('social_media_checks')
+        .insert({
+          user_id: user.id,
+          platform: check.platform,
+          post_date: check.postDate.toISOString(),
+          designer_name: check.designerName,
+          status: check.status,
+          notes: check.notes
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+      
+      setSocialMediaChecks([...socialMediaChecks, {
+        id: data.id,
+        platform: data.platform,
+        postDate: new Date(data.post_date),
+        designerName: data.designer_name,
+        status: data.status as 'posted' | 'not-posted' | 'pending',
+        notes: data.notes || ''
+      }]);
+      toast.success("Social media check added");
+    } catch (error: any) {
+      toast.error("Error adding check: " + error.message);
+    }
   };
 
-  const updateSocialMediaCheck = (check: SocialMediaCheck) => {
-    setSocialMediaChecks(socialMediaChecks.map((c) => (c.id === check.id ? check : c)));
-    toast.success("Social media check updated");
+  const updateSocialMediaCheck = async (check: SocialMediaCheck) => {
+    try {
+      const { error } = await supabase
+        .from('social_media_checks')
+        .update({
+          platform: check.platform,
+          post_date: check.postDate.toISOString(),
+          designer_name: check.designerName,
+          status: check.status,
+          notes: check.notes
+        })
+        .eq('id', check.id);
+
+      if (error) throw error;
+      
+      setSocialMediaChecks(socialMediaChecks.map((c) => (c.id === check.id ? check : c)));
+      toast.success("Social media check updated");
+    } catch (error: any) {
+      toast.error("Error updating check: " + error.message);
+    }
   };
 
-  const deleteSocialMediaCheck = (id: string) => {
-    setSocialMediaChecks(socialMediaChecks.filter((c) => c.id !== id));
-    toast.success("Social media check deleted");
+  const deleteSocialMediaCheck = async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from('social_media_checks')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+      
+      setSocialMediaChecks(socialMediaChecks.filter((c) => c.id !== id));
+      toast.success("Social media check deleted");
+    } catch (error: any) {
+      toast.error("Error deleting check: " + error.message);
+    }
   };
 
-  const toggleSocialMediaComplete = (id: string) => {
-    setSocialMediaChecks(
-      socialMediaChecks.map((c) =>
-        c.id === id
-          ? { ...c, status: c.status === "posted" ? "not-posted" : "posted" }
-          : c
-      )
-    );
+  const toggleSocialMediaComplete = async (id: string) => {
+    const check = socialMediaChecks.find(c => c.id === id);
+    if (!check) return;
+    
+    const newStatus = check.status === "posted" ? "not-posted" : "posted";
+    
+    try {
+      const { error } = await supabase
+        .from('social_media_checks')
+        .update({ status: newStatus })
+        .eq('id', id);
+
+      if (error) throw error;
+      
+      setSocialMediaChecks(
+        socialMediaChecks.map((c) =>
+          c.id === id ? { ...c, status: newStatus as 'posted' | 'not-posted' | 'pending' } : c
+        )
+      );
+    } catch (error: any) {
+      toast.error("Error updating check: " + error.message);
+    }
   };
 
   // Filter logic

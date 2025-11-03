@@ -19,7 +19,7 @@ export const CelebrityScheduleForm = ({ onSubmit, initialData }: CelebritySchedu
   const [name, setName] = useState(initialData?.name || "");
   const [videoCount, setVideoCount] = useState(initialData?.videoCount?.toString() || "");
   const [scheduledDate, setScheduledDate] = useState<Date | undefined>(initialData?.scheduledDate);
-  const [status, setStatus] = useState<"scheduled" | "completed">(initialData?.status || "scheduled");
+  const [status, setStatus] = useState<"scheduled" | "in-progress" | "completed">(initialData?.status || "scheduled");
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -94,12 +94,13 @@ export const CelebrityScheduleForm = ({ onSubmit, initialData }: CelebritySchedu
 
       <div>
         <Label>Status</Label>
-        <Select value={status} onValueChange={(value) => setStatus(value as "scheduled" | "completed")}>
+        <Select value={status} onValueChange={(value) => setStatus(value as "scheduled" | "in-progress" | "completed")}>
           <SelectTrigger>
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="scheduled">Scheduled</SelectItem>
+            <SelectItem value="in-progress">In Progress</SelectItem>
             <SelectItem value="completed">Completed</SelectItem>
           </SelectContent>
         </Select>
